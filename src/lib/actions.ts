@@ -33,9 +33,11 @@ async function updatePayment(
 export async function setPaymentExpired(paymentId: string) {
   "use server";
 
-  await updatePayment(paymentId, {
+  const { response } = await updatePayment(paymentId, {
     status: "expired",
-  });
+  }).then((data) => paymentResponseSchema.parse(data));
+
+  return response;
 }
 
 export async function setPaymentAsset(
