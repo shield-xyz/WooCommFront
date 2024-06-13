@@ -9,6 +9,7 @@ import { Asset, Network, Payment, paymentResponseSchema } from "@/lib/schemas";
 import { TConductorInstance } from "react-canvas-confetti/dist/types";
 import { toast } from "sonner";
 import { Skeleton } from "../ui/skeleton";
+import { PaymentExpired } from "./expired";
 import { PaymentProcess } from "./process";
 import { PaymentSetup } from "./setup";
 import { PaymentSuccess } from "./success";
@@ -32,7 +33,7 @@ const PaymentCard = ({
   payment: Payment;
   startingTime: number;
   onSetup: (paymentId: string, asset: Asset | undefined) => Promise<Payment>;
-  onExpire: (paymentId: string) => void;
+  onExpire: (paymentId: string) => Promise<Payment>;
   onVerification: (payload: {
     paymentId: string;
     networkId: string;
@@ -93,7 +94,7 @@ const PaymentCard = ({
     if (!seconds) {
       setPaymentExpired(true);
       toast.error("Payment expired!");
-      onExpire(payment._id);
+      onExpire(payment._id).then(setCurrentPayment);
     }
   }, [seconds, payment, onExpire]);
 
@@ -197,7 +198,7 @@ const PaymentCard = ({
       ) : currentPayment.status === "success" ? (
         <PaymentSuccess returnUrl={returnUrl} />
       ) : (
-        <Skeleton className="sm:w-[500px] w-[350px] h-1/2" />
+        <PaymentExpired />
       )}
     </main>
   );
