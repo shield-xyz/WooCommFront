@@ -6,6 +6,19 @@ export const createResponseSchema = <T extends z.ZodType<any>>(schema: T) =>
     status: z.string(),
   });
 
+export const paymentSchema = z.object({
+  _id: z.string(),
+  base_amount: z.number(),
+  quote_amount: z.number(),
+  status: z.string(),
+  return_url: z.string(),
+  assetId: z.string(),
+  clientId: z.string(),
+  created_on: z.string(),
+});
+
+export const paymentResponseSchema = createResponseSchema(paymentSchema);
+
 export const networkSchema = z.object({
   _id: z.string(),
   name: z.string(),
@@ -30,20 +43,6 @@ export const assetSchema = z.object({
 });
 
 export const assetsResponseSchema = createResponseSchema(z.array(assetSchema));
-
-export const paymentSchema = z.object({
-  _id: z.string(),
-  base_amount: z.number(),
-  quote_amount: z.number(),
-  status: z.string(),
-  return_url: z.string(),
-  assetId: z.string(),
-  clientId: z.string(),
-  userId: z.string(),
-  created_on: z.string(),
-});
-
-export const paymentResponseSchema = createResponseSchema(paymentSchema);
 
 export type Network = z.infer<typeof networkSchema>;
 export type Asset = z.infer<typeof assetSchema>;
