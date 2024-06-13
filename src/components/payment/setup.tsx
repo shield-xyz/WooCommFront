@@ -51,6 +51,7 @@ const PaymentSetup = ({
   price,
   timer,
   expired,
+  isLoading,
   onSubmit,
   onCancel,
 }: {
@@ -59,6 +60,7 @@ const PaymentSetup = ({
   price: number;
   timer: number;
   expired: boolean;
+  isLoading: boolean;
   onSubmit: (values: z.infer<typeof formSchema>) => void;
   onCancel?: () => void;
 }) => {
@@ -132,7 +134,10 @@ const PaymentSetup = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex w-full justify-center"
+      >
         <Card className="sm:w-[500px] w-[350px]">
           <CardHeader className="flex flex-row items-center">
             <div className="flex w-20 items-center justify-start">
@@ -276,7 +281,13 @@ const PaymentSetup = ({
               type="submit"
               disabled={(!selectedAsset || !selectedNetwork) && !expired}
             >
-              {expired ? "Go back to site" : "Pay"}
+              {expired ? (
+                "Go back to site"
+              ) : isLoading ? (
+                <Spinner invert />
+              ) : (
+                "Pay"
+              )}
             </Button>
           </CardFooter>
         </Card>

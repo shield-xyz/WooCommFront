@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronLeft } from "lucide-react";
-import { useState } from "react";
 
 import { Timer } from "../timer";
 import { Button } from "../ui/button";
@@ -12,17 +11,19 @@ import { Spinner } from "../ui/spinner";
 
 const PaymentVerify = ({
   timer,
+  transactionHash,
+  onTransactionHashChange,
   onBack,
   onValidate,
   validating,
 }: {
   timer: number;
+  transactionHash: string;
+  onTransactionHashChange: (value: string) => void;
   onBack: () => void;
   onValidate: () => void;
   validating: boolean;
 }) => {
-  const [transactionHash, setTransactionHash] = useState("");
-
   return (
     <Card className="sm:w-[500px] w-[350px]">
       <CardHeader className="flex flex-row items-center">
@@ -44,7 +45,7 @@ const PaymentVerify = ({
             placeholder="Transaction hash"
             className="w-full focus-visible:ring-0 focus-visible:ring-offset-0 text-xs overflow-ellipsis"
             value={transactionHash}
-            onChange={(e) => setTransactionHash(e.target.value)}
+            onChange={(e) => onTransactionHashChange(e.target.value)}
           />
           <Label className="text-xs">
             Please paste your transaction hash in the field above and press the

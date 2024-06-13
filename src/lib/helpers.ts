@@ -58,3 +58,7 @@ export async function convertCurrency(
 
   return formatNumberToPrice(convertedAmount);
 }
+
+export function getTimeDifference(date: Date) {
+  return Math.floor((new Date().getTime() - date.getTime()) / 1000);
+}

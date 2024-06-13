@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Fireworks from "react-canvas-confetti/dist/presets/fireworks";
 
 import { useTimer } from "@/hooks/useTimer";
-import { Asset, Network } from "@/lib/schemas";
+import { Asset, Network, Payment, paymentResponseSchema } from "@/lib/schemas";
 import { TConductorInstance } from "react-canvas-confetti/dist/types";
 import { toast } from "sonner";
+import { Skeleton } from "../ui/skeleton";
 import { PaymentProcess } from "./process";
 import { PaymentSetup } from "./setup";
 import { PaymentSuccess } from "./success";
@@ -18,21 +19,32 @@ const PaymentCard = ({
   networks,
   assets,
   returnUrl,
-  paymentId,
-  onUpdate,
+  payment,
+  startingTime,
+  onSetup,
+  onExpire,
+  onVerification,
 }: {
   price: number;
   networks: Network[];
   assets: Asset[];
   returnUrl: string;
-  paymentId: string;
-  onUpdate: (paymentId: string, payload: { [key: string]: any }) => void;
+  payment: Payment;
+  startingTime: number;
+  onSetup: (paymentId: string, asset: Asset | undefined) => Promise<Payment>;
+  onExpire: (paymentId: string) => void;
+  onVerification: (payload: {
+    paymentId: string;
+    networkId: string;
+    hash: string;
+  }) => Promise<{
+    response: string;
+    status: string;
+  }>;
 }) => {
   const router = useRouter();
 
-  const [assetAmount, setAssetAmount] = useState<string>(price.toString());
-  const [wantToPay, setWantToPay] = useState(false);
-  const [alreadyPaid, setAlreadyPaid] = useState(false);
+  const [assetAmount, setAssetAmount] = useState<string>("0");
   const [selectedNetwork, setSelectedNetwork] = useState<Network>();
   const [selectedAsset, setSelectedAsset] = useState<Asset>();
   const [address, setAddress] = useState("");
@@ -40,31 +52,61 @@ const PaymentCard = ({
     useState<TConductorInstance>();
   const [validating, setValidating] = useState(false);
   const [paymentExpired, setPaymentExpired] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [currentPayment, setCurrentPayment] = useState(payment);
+  const [isLoading, setIsLoading] = useState(false);
+  const [wantToVerify, setWantToVerify] = useState(false);
+  const [transactionHash, setTransactionHash] = useState("");
 
-  const { seconds, start } = useTimer(300);
+  const { seconds, start } = useTimer(startingTime);
+
+  const getNetworkById = useCallback(
+    (id: string) => {
+      return networks.find((network) => network.networkId === id);
+    },
+    [networks]
+  );
+
+  const getAssetById = useCallback(
+    (id: string) => {
+      return assets.find((asset) => asset.assetId === id);
+    },
+    [assets]
+  );
 
   useEffect(() => {
-    start();
-  }, [start]);
+    if (startingTime > 0) start();
+
+    if (payment.status === "pending") {
+      const network = getNetworkById(payment.assetId.split("-")[1]);
+      const asset = getAssetById(payment.assetId);
+
+      if (!network || !asset) throw new Error("Invalid network or asset");
+
+      setSelectedNetwork(network);
+      setSelectedAsset(asset);
+      setAssetAmount(payment.quote_amount.toString());
+      setAddress(network.deposit_address);
+    }
+  }, [start, startingTime, payment, getNetworkById, getAssetById]);
 
   useEffect(() => {
     if (!seconds) {
       setPaymentExpired(true);
       toast.error("Payment expired!");
+      onExpire(payment._id);
     }
-  }, [seconds]);
+  }, [seconds, payment, onExpire]);
 
   function onSubmit(values: any) {
+    setIsLoading(true);
+
     if (paymentExpired) {
       router.back();
       return;
     }
 
-    const network = networks.find(
-      (network) => network.networkId === values.network
-    );
-    const asset = assets.find((asset) => asset.assetId === values.asset);
+    const network = getNetworkById(values.network);
+    const asset = getAssetById(values.asset);
 
     if (!network || !asset) {
       toast.error("Invalid network or asset");
@@ -75,66 +117,87 @@ const PaymentCard = ({
     setSelectedAsset(asset);
     setAssetAmount(values.amount);
     setAddress(network.deposit_address);
-    setWantToPay(true);
 
-    onUpdate(paymentId, {
-      status: "pending",
-    });
-    console.log(values);
+    onSetup(payment._id, asset)
+      .then(setCurrentPayment)
+      .finally(() => setIsLoading(false));
   }
 
-  function validateTransaction() {
+  function handleVerification() {
     setValidating(true);
-    new Promise((resolve) => setTimeout(resolve, 3000)).then(() => {
-      setValidating(false);
-      confettiConductor?.shoot();
-      setPaymentSuccess(true);
-    });
+
+    if (!selectedNetwork) throw new Error("Invalid network");
+
+    onVerification({
+      paymentId: currentPayment._id,
+      networkId: selectedNetwork.networkId,
+      hash: transactionHash,
+    })
+      .then((data) => {
+        if (data.response === "failed") {
+          toast.error("Transaction verification failed");
+        } else {
+          const { response } = paymentResponseSchema.parse(data);
+          toast.success("Transaction verified successfully");
+          setCurrentPayment(response);
+          confettiConductor?.shoot();
+        }
+      })
+      .finally(() => setValidating(false));
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-start pt-32">
+    <main className="flex flex-col h-screen w-full items-center justify-start p-32">
       <Fireworks
         className="absolute top-0 left-0 w-full h-full pointer-events-none z-50"
         onInit={(instance) => {
           setConfettiConductor(instance.conductor);
         }}
       />
-      {paymentSuccess ? (
-        <PaymentSuccess returnUrl={returnUrl} />
-      ) : alreadyPaid ? (
-        <PaymentVerify
-          timer={seconds}
-          onBack={() => {
-            setWantToPay(true);
-            setAlreadyPaid(false);
-          }}
-          onValidate={validateTransaction}
-          validating={validating}
-        />
-      ) : wantToPay && assetAmount && selectedAsset && selectedNetwork ? (
-        <PaymentProcess
-          timer={seconds}
-          address={address}
-          network={selectedNetwork}
-          asset={selectedAsset}
-          amount={assetAmount}
-          onCancel={() => setWantToPay(false)}
-          onPaid={() => {
-            setAlreadyPaid(true);
-            setWantToPay(false);
-          }}
-        />
-      ) : (
+      {currentPayment.status === "pending" ? (
+        selectedNetwork && selectedAsset ? (
+          wantToVerify ? (
+            <PaymentVerify
+              timer={seconds}
+              transactionHash={transactionHash}
+              onTransactionHashChange={setTransactionHash}
+              onBack={() => setWantToVerify(false)}
+              onValidate={handleVerification}
+              validating={validating}
+            />
+          ) : (
+            <PaymentProcess
+              timer={seconds}
+              address={address}
+              network={selectedNetwork}
+              asset={selectedAsset}
+              amount={assetAmount}
+              onCancel={() => {
+                setSelectedNetwork(undefined);
+                setSelectedAsset(undefined);
+                onSetup(payment._id, undefined).then(setCurrentPayment);
+              }}
+              onPaid={() => setWantToVerify(true)}
+            />
+          )
+        ) : (
+          <Skeleton className="sm:w-[500px] w-[350px] h-1/2" />
+        )
+      ) : currentPayment.status === "created" ? (
         <PaymentSetup
           networks={networks}
           assets={assets}
           price={price}
           timer={seconds}
           expired={paymentExpired}
+          isLoading={isLoading}
           onSubmit={onSubmit}
           onCancel={() => router.back()}
         />
+      ) : currentPayment.status === "success" ? (
+        <PaymentSuccess returnUrl={returnUrl} />
+      ) : (
+        <Skeleton className="sm:w-[500px] w-[350px] h-1/2" />
       )}
     </main>
   );
