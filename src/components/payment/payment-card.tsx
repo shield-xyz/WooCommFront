@@ -75,7 +75,7 @@ const PaymentCard = ({
   );
 
   useEffect(() => {
-    if (startingTime > 0) start();
+    if (startingTime > 0 && seconds === startingTime) start();
 
     if (payment.status === "pending") {
       const network = getNetworkById(payment.assetId.split("-")[1]);
