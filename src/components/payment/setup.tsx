@@ -42,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { Spinner } from "../ui/spinner";
 
@@ -76,6 +77,7 @@ const PaymentSetup = ({
       .string()
       .refine((value) => assets.map((a) => a.assetId).includes(value)),
     amount: z.string(),
+    terms: z.boolean(),
   });
 
   function getAssetsByNetworkId(networkId: string | undefined): Asset[] {
@@ -86,6 +88,7 @@ const PaymentSetup = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       network: networks[0].networkId,
+      terms: false,
     },
   });
 
@@ -276,19 +279,57 @@ const PaymentSetup = ({
             </div>
           </CardContent>
           <CardFooter>
-            <Button
-              className="min-w-full"
-              type="submit"
-              disabled={(!selectedAsset || !selectedNetwork) && !expired}
-            >
-              {expired ? (
-                "Go back to site"
-              ) : isLoading ? (
-                <Spinner invert />
-              ) : (
-                "Pay"
-              )}
-            </Button>
+            <div className="flex flex-col w-full space-y-4 mt-2">
+              <FormField
+                control={form.control}
+                name="terms"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex w-full items-center space-x-2">
+                      <Checkbox
+                        id="terms"
+                        checked={field.value}
+                        onCheckedChange={(value: boolean) =>
+                          form.setValue("terms", value)
+                        }
+                      />
+                      <label
+                        htmlFor="terms"
+                        className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        I agree to the{" "}
+                        <a
+                          href={process.env.TERMS_OF_USE_URL ?? "#"}
+                          className="font-bold"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Shopper Terms of Use
+                        </a>
+                      </label>
+                    </div>
+                  </FormItem>
+                )}
+              ></FormField>
+              <Button
+                className="min-w-full"
+                type="submit"
+                disabled={
+                  (!selectedAsset ||
+                    !selectedNetwork ||
+                    !form.watch("terms")) &&
+                  !expired
+                }
+              >
+                {expired ? (
+                  "Go back to site"
+                ) : isLoading ? (
+                  <Spinner invert />
+                ) : (
+                  "Pay"
+                )}
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </form>
