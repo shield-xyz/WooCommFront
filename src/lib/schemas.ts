@@ -13,7 +13,7 @@ export const paymentSchema = z.object({
   status: z.string(),
   return_url: z.string(),
   assetId: z.string(),
-  clientId: z.string(),
+  userId: z.string(),
   created_on: z.string(),
 });
 
