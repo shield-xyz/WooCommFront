@@ -33,7 +33,7 @@ function formatNumberToPrice(value: number) {
   const zeroCount = match[0].length;
 
   const significantDecimal = decimalPart
-    .slice(0, zeroCount + 4)
+    .slice(0, zeroCount + 3)
     .replace(/0+$/, "");
 
   return `${integerPart}.${significantDecimal}`;
