@@ -20,7 +20,7 @@ export function createQRCode(address: string) {
   });
 }
 
-function formatNumberToPrice(value: number) {
+function formatNumberToPrice(value: number, decimals: number) {
   const strValue = value.toString();
   const [integerPart, decimalPart] = strValue.split(".");
 
@@ -28,13 +28,14 @@ function formatNumberToPrice(value: number) {
 
   const match = decimalPart.match(/0+(?=[^0]|$)/);
 
-  if (!match) return strValue;
+  if (!match) return integerPart + "." + decimalPart.slice(0, decimals);
 
   const zeroCount = match[0].length;
 
   const significantDecimal = decimalPart
-    .slice(0, zeroCount + 3)
-    .replace(/0+$/, "");
+    .slice(0, zeroCount + 4)
+    .replace(/0+$/, "")
+    .slice(0, decimals);
 
   return `${integerPart}.${significantDecimal}`;
 }
@@ -42,7 +43,8 @@ function formatNumberToPrice(value: number) {
 export async function convertCurrency(
   amount: number,
   base: string,
-  currency: string
+  currency: string,
+  decimals: number
 ) {
   const response = await fetch(
     `https://api.coinbase.com/v2/prices/${base}-${currency}/spot`
@@ -56,7 +58,7 @@ export async function convertCurrency(
 
   const convertedAmount = parseFloat(data.amount) * amount;
 
-  return formatNumberToPrice(convertedAmount);
+  return formatNumberToPrice(convertedAmount, decimals);
 }
 
 export function getTimeDifference(date: Date) {

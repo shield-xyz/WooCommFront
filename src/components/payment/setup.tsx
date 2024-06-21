@@ -93,9 +93,9 @@ const PaymentSetup = ({
   });
 
   const updateAssetAmount = useCallback(
-    (symbol: string) => {
+    (symbol: string, decimals: number) => {
       setFetchingAssetPrice(true);
-      convertCurrency(price, "USD", symbol)
+      convertCurrency(price, "USD", symbol, decimals)
         .then((amount) => form.setValue("amount", amount))
         .finally(() => setFetchingAssetPrice(false));
     },
@@ -122,7 +122,7 @@ const PaymentSetup = ({
       return;
     }
 
-    updateAssetAmount(selectedAsset.symbol);
+    updateAssetAmount(selectedAsset.symbol, selectedAsset.decimals);
   }, [
     watchedAsset,
     watchedNetwork,

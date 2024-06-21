@@ -88,7 +88,7 @@ const PaymentCard = ({
       setAssetAmount(payment.quote_amount.toString());
       setAddress(network.deposit_address);
     }
-  }, [start, startingTime, payment, getNetworkById, getAssetById]);
+  }, [start, startingTime, payment, getNetworkById, getAssetById, seconds]);
 
   useEffect(() => {
     if (!seconds) {
