@@ -63,7 +63,8 @@ export async function setPaymentAsset(
   const quoteAmount = await convertCurrency(
     payment.base_amount,
     "USD",
-    asset.symbol
+    asset.symbol,
+    asset.decimals
   );
 
   const { response } = await updatePayment(paymentId, {
