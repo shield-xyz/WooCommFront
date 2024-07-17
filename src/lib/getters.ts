@@ -10,7 +10,7 @@ import {
 async function getFromAPI<T>(url: string): Promise<T | undefined> {
   "use server";
 
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-cache" });
   const data = await res.json();
   if (data.status === "error") return;
   return data;
